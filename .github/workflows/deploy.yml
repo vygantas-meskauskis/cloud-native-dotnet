@@ -1,0 +1,129 @@
+# Deploy: runs after CI succeeds on main (or by hand). 🧪 Not run by the author: it needs your Azure
+# subscription. It stays switched off until you set the repository variable AZURE_CLIENT_ID (chapter 12).
+#
+# No secrets: GitHub issues a short-lived OIDC token, Azure trusts it through a federated credential,
+# and every service in Azure authenticates with a managed identity.
+name: deploy
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write # request the OIDC token for azure/login
+  contents: read
+
+# Never run two deployments at once, and never cancel one halfway.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+  # The exact commit CI tested. Every image is tagged with it, so a revision maps back to a commit.
+  SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+jobs:
+  deploy:
+    # workflow_run also fires for pull requests (even from forks whose branch is named main), so only
+    # deploy CI runs that came from a push to this repository, never someone else's code.
+    if: >
+      vars.AZURE_CLIENT_ID != '' &&
+      (github.event_name == 'workflow_dispatch' ||
+        (github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.event == 'push' &&
+         github.event.workflow_run.head_repository.full_name == github.repository))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: production # protection rules (reviewers, branch filter) live on the environment
+      url: ${{ steps.apps.outputs.apiUrl }}
+    defaults:
+      run:
+        working-directory: sample
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: sample/global.json
+
+      - name: Sign in to Azure (OIDC, no secret)
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: "Phase 1: platform (registry, SQL, Service Bus, Key Vault, environment)"
+        id: platform
+        run: |
+          az config set extension.use_dynamic_install=yes_without_prompt
+          outputs=$(az deployment group create \
+            --resource-group "$RESOURCE_GROUP" --name "platform-$SHA" \
+            --template-file infra/main.bicep --parameters infra/main.bicepparam \
+            --query properties.outputs -o json)
+          echo "registry=$(jq -r .registryName.value <<< "$outputs")" >> "$GITHUB_OUTPUT"
+          echo "loginServer=$(jq -r .registryLoginServer.value <<< "$outputs")" >> "$GITHUB_OUTPUT"
+          echo "job=$(jq -r .migrationJobName.value <<< "$outputs")" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push images (no Dockerfile)
+        env:
+          LOGIN_SERVER: ${{ steps.platform.outputs.loginServer }}
+        run: |
+          az acr login --name "${{ steps.platform.outputs.registry }}"
+          for project in Ledgerly.Api Ledgerly.Worker Ledgerly.MarketData Ledgerly.MigrationService; do
+            dotnet publish "src/$project" -c Release /t:PublishContainer \
+              -p:ContainerRegistry="$LOGIN_SERVER" -p:ContainerImageTag="$SHA"
+          done
+
+      - name: "Phase 2: migration job on the new image"
+        run: |
+          az deployment group create \
+            --resource-group "$RESOURCE_GROUP" --name "migrations-$SHA" \
+            --template-file infra/main.bicep --parameters infra/main.bicepparam \
+            --parameters imageTag="$SHA" deployApps=false -o none
+
+      - name: Run migrations and wait
+        env:
+          JOB: ${{ steps.platform.outputs.job }}
+        run: |
+          execution=$(az containerapp job start -n "$JOB" -g "$RESOURCE_GROUP" --query name -o tsv)
+          echo "Started $execution"
+          for i in $(seq 1 60); do
+            status=$(az containerapp job execution show -n "$JOB" -g "$RESOURCE_GROUP" \
+              --job-execution-name "$execution" --query properties.status -o tsv)
+            echo "[$i] $status"
+            case "$status" in
+              Succeeded) exit 0 ;;
+              Failed|Stopped|Degraded) echo "::error::Migration $execution ended as $status. See its logs in Log Analytics."; exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "::error::Migration did not finish within 10 minutes"; exit 1
+
+      - name: "Phase 3: apps on the new image (new revisions)"
+        id: apps
+        run: |
+          apiUrl=$(az deployment group create \
+            --resource-group "$RESOURCE_GROUP" --name "apps-$SHA" \
+            --template-file infra/main.bicep --parameters infra/main.bicepparam \
+            --parameters imageTag="$SHA" deployApps=true \
+            --query properties.outputs.apiUrl.value -o tsv)
+          echo "apiUrl=$apiUrl" >> "$GITHUB_OUTPUT"
+
+      # The deployment "succeeding" only means Azure accepted it. This proves the new revision answers.
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS "${{ steps.apps.outputs.apiUrl }}/alive"; then echo; echo "API is up"; exit 0; fi
+            sleep 10
+          done
+          echo "::error::API did not become healthy"; exit 1

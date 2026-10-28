@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ledgerly.AppHost/Ledgerly.AppHost.csproj" />
+    <Project Path="src/Ledgerly.ServiceDefaults/Ledgerly.ServiceDefaults.csproj" />
+    <Project Path="src/Ledgerly.Core/Ledgerly.Core.csproj" />
+    <Project Path="src/Ledgerly.Api/Ledgerly.Api.csproj" />
+    <Project Path="src/Ledgerly.Worker/Ledgerly.Worker.csproj" />
+    <Project Path="src/Ledgerly.MarketData/Ledgerly.MarketData.csproj" />
+    <Project Path="src/Ledgerly.MigrationService/Ledgerly.MigrationService.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ledgerly.UnitTests/Ledgerly.UnitTests.csproj" />
+    <Project Path="tests/Ledgerly.IntegrationTests/Ledgerly.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="nuget.config" />
+  </Folder>
+</Solution>

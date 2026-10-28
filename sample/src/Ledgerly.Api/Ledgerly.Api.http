@@ -1,0 +1,47 @@
+### Ledgerly API: run with Aspire (`aspire run`), then use the API's URL from the dashboard.
+### Create a dev token first:  dotnet user-jwts create --project src/Ledgerly.Api --name you@ledgerly.dev
+@api = https://localhost:7180
+@token = paste-token-here
+
+### List portfolios
+GET {{api}}/api/portfolios
+Authorization: Bearer {{token}}
+
+### Create a portfolio
+POST {{api}}/api/portfolios
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "Long-term ETFs", "baseCurrency": "EUR" }
+
+### Record a trade (replace the id)
+POST {{api}}/api/portfolios/00000000-0000-0000-0000-000000000000/transactions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "symbol": "VWCE", "type": "Buy", "quantity": 10, "price": 112.40, "tradeDate": "2026-10-01" }
+
+### Valuation (live prices, cached, degrades gracefully)
+GET {{api}}/api/portfolios/00000000-0000-0000-0000-000000000000/valuation
+Authorization: Bearer {{token}}
+
+### Import a broker CSV (202 Accepted + Location header)
+POST {{api}}/api/portfolios/00000000-0000-0000-0000-000000000000/imports
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=b
+
+--b
+Content-Disposition: form-data; name="file"; filename="broker.csv"
+Content-Type: text/csv
+
+date,type,symbol,quantity,price,reference
+2026-09-01,buy,AAPL,5,190.10,BRK-1001
+2026-09-15,buy,MSFT,3,410.00,BRK-1002
+--b--
+
+### Price alert
+POST {{api}}/api/alerts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "symbol": "AAPL", "targetPrice": 150, "direction": "Above" }

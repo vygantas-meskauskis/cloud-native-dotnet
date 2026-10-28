@@ -1,0 +1,22 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.4">
+  <!-- Local orchestration: starts SQL Server, Redis, the Service Bus emulator and all services,
+       wires connection strings, and opens the dashboard (logs, traces, metrics). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
+    <UserSecretsId>ledgerly-apphost-3b9e1a</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ledgerly.Api\Ledgerly.Api.csproj" />
+    <ProjectReference Include="..\Ledgerly.Worker\Ledgerly.Worker.csproj" />
+    <ProjectReference Include="..\Ledgerly.MarketData\Ledgerly.MarketData.csproj" />
+    <ProjectReference Include="..\Ledgerly.MigrationService\Ledgerly.MigrationService.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.SqlServer" />
+    <PackageReference Include="Aspire.Hosting.Redis" />
+    <PackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
+  </ItemGroup>
+</Project>

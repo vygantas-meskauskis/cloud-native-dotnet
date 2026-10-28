@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <!-- Runs EF Core migrations once, then exits. Locally Aspire waits for it to complete before starting the API;
+       in Azure it runs as a Container Apps job triggered by the deployment pipeline. -->
+  <PropertyGroup>
+    <ContainerRepository>ledgerly-migrations</ContainerRepository>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ledgerly.ServiceDefaults\Ledgerly.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\Ledgerly.Core\Ledgerly.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" />
+  </ItemGroup>
+</Project>

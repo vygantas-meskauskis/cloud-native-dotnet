@@ -1,0 +1,14 @@
+bin/
+obj/
+TestResults/
+*.user
+.vs/
+.vscode/
+.idea/
+*.swp
+.DS_Store
+.azure/
+appsettings.*.local.json
+
+# Authoring notes (not part of the course)
+_authoring/

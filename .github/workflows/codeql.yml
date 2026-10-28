@@ -1,0 +1,27 @@
+# Static security analysis (SAST). Findings show up under Security > Code scanning and on pull requests.
+name: codeql
+
+on:
+  push:
+    branches: [main]
+    paths: ["sample/**"]
+  pull_request:
+    paths: ["sample/**"]
+  schedule:
+    - cron: "17 3 * * 1" # weekly, catches new queries against unchanged code
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: csharp
+          build-mode: none # no build needed for C#, analysis reads the source
+      - uses: github/codeql-action/analyze@v4

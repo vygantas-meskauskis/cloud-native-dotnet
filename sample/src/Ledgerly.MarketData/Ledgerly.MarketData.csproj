@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- A FAKE market-data provider with "chaos" switches, so you can watch retries, timeouts and
+       circuit breakers in action without any third-party API key. -->
+  <PropertyGroup>
+    <ContainerRepository>ledgerly-marketdata</ContainerRepository>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Ledgerly.ServiceDefaults\Ledgerly.ServiceDefaults.csproj" />
+  </ItemGroup>
+</Project>

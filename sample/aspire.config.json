@@ -1,0 +1,5 @@
+{
+  "appHost": {
+    "path": "src/Ledgerly.AppHost/Ledgerly.AppHost.csproj"
+  }
+}
