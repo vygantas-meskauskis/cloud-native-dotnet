@@ -1,5 +1,11 @@
 # Cloud-Native .NET
 
+> **Canonical location:** this course now lives in [learning-library](https://github.com/vygantas-meskauskis/learning-library/tree/main/courses/cloud-native-dotnet).
+>
+> **[Read Cloud-Native .NET](https://vygantas-meskauskis.github.io/learning-library/courses/cloud-native-dotnet/)** or [choose another course](https://vygantas-meskauskis.github.io/learning-library/).
+>
+> This repository is archived to preserve its original content and Git history. All future edits belong in `vygantas-meskauskis/learning-library`.
+
 **Modern .NET, GitHub and Azure for enterprise apps.** A self-study course for senior .NET developers who built their career on .NET Framework, IIS, Remote Desktop and log files, and now want the modern stack: .NET 10, Aspire, GitHub Actions, Azure Container Apps, OpenTelemetry and the reliability habits that come with them.
 
 > 📅 Written in October 2026 for .NET 10 (LTS), C# 14, Aspire 13 and the Azure services of that time. Facts marked 🔧 change often; check the linked docs.
